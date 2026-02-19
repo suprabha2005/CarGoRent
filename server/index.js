@@ -1,35 +1,55 @@
 const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors'); // Added this
 const dotenv = require('dotenv');
-const connectDB = require('./config/db'); 
-const cors = require('cors'); // Add this for Flutter connection
 
-// 1. Load Environment Variables
+// Load environment variables
 dotenv.config();
 
-// 2. Initialize Express
 const app = express();
 
-// 3. Middleware
-app.use(express.json()); // Essential for parsing JSON bodies
-app.use(cors()); // Allows your Flutter app to access this API without being blocked
+// Middleware
+app.use(cors()); // This allows your Flutter Chrome app to connect
+app.use(express.json());
 
-// 4. Connect to Database
-// Ensure your .env has MONGO_URI=mongodb://localhost:27017/CarGoRent
-connectDB();
+// 1. Database Connection
+// Your terminal confirmed this works
+const mongoURI = process.env.MONGO_URI || 'mongodb://localhost:27017/CarGoRent';
 
-// 5. Define Routes
-// This links the logic in /routes/auth.js to the /api/auth path
-const authRoutes = require('./routes/auth');
-app.use('/api/auth', authRoutes);
+mongoose.connect(mongoURI)
+    .then(() => console.log('Local MongoDB Connected: localhost:27017 ✅'))
+    .catch(err => console.error('MongoDB connection error:', err));
 
-// 6. Test/Root Route
-app.get('/', (req, res) => {
-    res.send("CarGoRent Server is Running locally! 🚗💨");
+// 2. User Schema & Model
+const userSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    role: { type: String, default: 'customer' }
 });
 
-// 7. Start the Server
+const User = mongoose.model('User', userSchema);
+
+// 3. Registration Route
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { name, email, password, role } = req.body;
+        
+        // Check if user exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) return res.status(400).json({ message: 'User already exists' });
+
+        const newUser = new User({ name, email, password, role });
+        await newUser.save();
+
+        res.status(201).json({ message: 'User created successfully!' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4. Start the Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server started on port ${PORT} ✅`);
-    console.log(`Local MongoDB Connected: localhost:27017 ✅`);
 });
