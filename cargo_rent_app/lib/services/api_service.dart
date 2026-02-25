@@ -3,58 +3,103 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
-  // Use localhost for Chrome/Web testing
-  static const String baseUrl = 'http://localhost:5000/api';
+  // Use '10.0.2.2' if testing on Android Emulator, 'localhost' for Chrome/Web
+  final String baseUrl = "http://localhost:5000/api"; 
   final _storage = const FlutterSecureStorage();
 
-  // 1. Register User
-  Future<http.Response> register(String name, String email, String password) async {
+  // --- 1. REGISTRATION ---
+  Future<bool> register(String name, String email, String password, String role) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/register'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse("$baseUrl/auth/register"),
+        headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          'name': name,
-          'email': email,
-          'password': password,
-          'role': 'customer',
+          "name": name,
+          "email": email,
+          "password": password,
+          "role": role,
         }),
-      );
-      return response;
+      ).timeout(const Duration(seconds: 10));
+      return response.statusCode == 201;
     } catch (e) {
-      throw Exception('Failed to connect to server: $e');
+      print("Registration Error: $e");
+      return false;
     }
   }
 
-  // 2. Login User & Save Token
-  Future<http.Response> login(String email, String password) async {
+  // --- 2. LOGIN ---
+  Future<Map<String, dynamic>?> login(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
+        Uri.parse("$baseUrl/auth/login"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": email, "password": password}),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        // Save both token and user ID for later use in bookings
         await _storage.write(key: 'token', value: data['token']);
+        await _storage.write(key: 'userId', value: data['user']['id']); 
+        await _storage.write(key: 'role', value: data['user']['role']);
+        return data;
       }
-      return response;
     } catch (e) {
-      throw Exception('Login error: $e');
+      print("Login Error: $e");
     }
+    return null;
   }
 
-  // 3. Logout
+  // --- 3. CARS ---
+  Future<List<dynamic>> fetchCars() async {
+    try {
+      final response = await http.get(Uri.parse("$baseUrl/cars/all"));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+    } catch (e) {
+      print("Fetch Cars Error: $e");
+    }
+    return [];
+  }
+
+  Future<bool> addCar(Map<String, dynamic> carData) async {
+    final token = await _storage.read(key: 'token');
+    final response = await http.post(
+      Uri.parse("$baseUrl/cars/add"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode(carData),
+    );
+    return response.statusCode == 201;
+  }
+
+  // --- 4. BOOKINGS ---
+  Future<bool> createBooking(Map<String, dynamic> bookingData) async {
+    final token = await _storage.read(key: 'token');
+    final userId = await _storage.read(key: 'userId');
+
+    // Add the userId to the booking data automatically before sending
+    final completeBookingData = {
+      ...bookingData,
+      "userId": userId,
+    };
+
+    final response = await http.post(
+      Uri.parse("$baseUrl/bookings/create"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode(completeBookingData),
+    );
+    
+    return response.statusCode == 201;
+  }
+
   Future<void> logout() async {
-    await _storage.delete(key: 'token');
-  }
-
-  // 4. Get Stored Token
-  Future<String?> getToken() async {
-    return await _storage.read(key: 'token');
+    await _storage.deleteAll();
   }
 }

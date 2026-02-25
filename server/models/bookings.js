@@ -1,19 +1,13 @@
 const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema({
-    user_id: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'User', // Links to the User table
-        required: true 
-    },
-    car_id: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Car', // Links to the Car table
-        required: true 
-    },
-    startDate: { type: Date, required: true },
-    endDate: { type: Date, required: true },
-    totalAmount: { type: Number, required: true } // Calculated during the booking flow
-}, { timestamps: true });
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  car: { type: mongoose.Schema.Types.ObjectId, ref: 'Car', required: true },
+  startDate: { type: Date, required: true },
+  endDate: { type: Date, required: true },
+  totalPrice: { type: Number, required: true },
+  status: { type: String, enum: ['pending', 'confirmed', 'cancelled'], default: 'confirmed' },
+  createdAt: { type: Date, default: Date.now }
+});
 
 module.exports = mongoose.model('Booking', bookingSchema);
