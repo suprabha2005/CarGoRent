@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  final String role;
-  const RegisterScreen({super.key, required this.role});
+  const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -14,100 +12,119 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final ApiService _apiService = ApiService();
+  final _adminCodeController = TextEditingController();
+  
+  String _selectedRole = "customer";
+  final _apiService = ApiService();
   bool _isLoading = false;
-
-  Color get _roleColor => widget.role == 'admin' ? Colors.red.shade800 : 
-                          widget.role == 'vendor' ? Colors.orange.shade800 : 
-                          const Color(0xFF1A237E);
 
   void _handleRegister() async {
     // Basic validation
     if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
+        const SnackBar(content: Text("Please fill in all required fields")),
       );
       return;
     }
 
     setState(() => _isLoading = true);
-    try {
-      // UPDATED: Passing 4 positional arguments in the correct order
-      final success = await _apiService.register(
-        _nameController.text.trim(),
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-        widget.role, 
+
+    // Fixed: Using NAMED parameters to match the updated ApiService
+    final success = await _apiService.register(
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+      role: _selectedRole,
+      adminCode: _selectedRole == 'admin' ? _adminCodeController.text.trim() : null,
+    );
+
+    setState(() => _isLoading = false);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Registration Successful! Please Login.")),
       );
-
-      if (!mounted) return;
-
-      // UPDATED: success is now a boolean from ApiService
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration Success!'), backgroundColor: Colors.green)
-        );
-        
-        // Wait a moment so user sees the success message
-        await Future.delayed(const Duration(milliseconds: 500));
-
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context, 
-          MaterialPageRoute(builder: (context) => LoginScreen(role: widget.role))
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration Failed: Email might already exist'), backgroundColor: Colors.red)
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      Navigator.pop(context); // Go back to Login
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Registration Failed. Email might be taken or Admin Key is wrong.")),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Register as ${widget.role.toUpperCase()}"), 
-        backgroundColor: _roleColor,
-        foregroundColor: Colors.white,
-      ),
-      body: SingleChildScrollView( // Added scroll view to prevent keyboard overflow
-        padding: const EdgeInsets.all(30.0),
+      appBar: AppBar(title: const Text("Create Account")),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(25.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(Icons.person_add_outlined, size: 80, color: _roleColor),
+            const Text(
+              "Join CarGoRent",
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 30),
             TextField(
-              controller: _nameController, 
-              decoration: const InputDecoration(labelText: "Full Name", border: OutlineInputBorder())
+              controller: _nameController,
+              decoration: const InputDecoration(labelText: "Full Name", border: OutlineInputBorder()),
             ),
             const SizedBox(height: 15),
             TextField(
-              controller: _emailController, 
-              decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder())
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder()),
             ),
             const SizedBox(height: 15),
             TextField(
-              controller: _passwordController, 
-              decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()), 
-              obscureText: true
+              controller: _passwordController,
+              decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()),
+              obscureText: true,
             ),
+            const SizedBox(height: 20),
+            
+            // ROLE DROPDOWN
+            const Text("Register as:", style: TextStyle(fontWeight: FontWeight.bold)),
+            DropdownButton<String>(
+              value: _selectedRole,
+              isExpanded: true,
+              items: ["customer", "vendor", "admin"].map((String role) {
+                return DropdownMenuItem<String>(
+                  value: role,
+                  child: Text(role.toUpperCase()),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() => _selectedRole = value!);
+              },
+            ),
+
+            // ADMIN KEY FIELD (Only shows if admin is selected)
+            if (_selectedRole == 'admin') ...[
+              const SizedBox(height: 15),
+              TextField(
+                controller: _adminCodeController,
+                decoration: const InputDecoration(
+                  labelText: "Admin Secret Key",
+                  hintText: "Enter 12345",
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock_person),
+                ),
+              ),
+            ],
+
             const SizedBox(height: 30),
             _isLoading 
-              ? const CircularProgressIndicator() 
-              : SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _handleRegister, 
-                    style: ElevatedButton.styleFrom(backgroundColor: _roleColor),
-                    child: const Text("SIGN UP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ? const Center(child: CircularProgressIndicator()) 
+              : ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    backgroundColor: const Color(0xFF1A237E),
+                    foregroundColor: Colors.white,
                   ),
+                  onPressed: _handleRegister, 
+                  child: const Text("REGISTER"),
                 ),
           ],
         ),

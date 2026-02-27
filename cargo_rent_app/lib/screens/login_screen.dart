@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import 'register_screen.dart';
-import 'home_screen.dart'; 
+import 'vendor_verification_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  final String role;
-  const LoginScreen({super.key, required this.role});
+  final String? role; 
+  const LoginScreen({super.key, this.role});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -14,122 +13,110 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final ApiService _apiService = ApiService();
+  final _apiService = ApiService();
   bool _isLoading = false;
-
-  Color get _roleColor => widget.role == 'admin' ? Colors.red.shade800 : 
-                          widget.role == 'vendor' ? Colors.orange.shade800 : 
-                          const Color(0xFF1A237E);
 
   void _handleLogin() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter email and password')),
+        const SnackBar(content: Text("Please enter email and password")),
       );
       return;
     }
 
     setState(() => _isLoading = true);
-    try {
-      // UPDATED: Only passing email and password as per our new ApiService
-      final responseData = await _apiService.login(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
+    final result = await _apiService.login(
+      _emailController.text.trim(), 
+      _passwordController.text.trim()
+    );
+    setState(() => _isLoading = false);
 
-      if (!mounted) return;
+    if (result != null) {
+      String role = result['user']['role'];
+      String status = result['user']['verificationStatus'] ?? 'approved';
 
-      // UPDATED: ApiService returns Map if successful, null if failed
-      if (responseData != null) {
-        String userRole = responseData['user']['role'];
-
-        // Security Check: Ensure the user is logging into the correct portal
-        if (userRole != widget.role) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Access Denied: You are registered as a $userRole'),
-              backgroundColor: Colors.red,
-            ),
+      if (role == 'admin') {
+        Navigator.pushReplacementNamed(context, '/admin_dashboard');
+      } 
+      else if (role == 'vendor') {
+        if (status == 'unverified') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const VendorVerificationScreen()),
           );
-          await _apiService.logout(); // Clear the mismatched token
-          return;
+        } else if (status == 'pending') {
+          _showPendingDialog();
+        } else {
+          Navigator.pushReplacementNamed(context, '/vendor_dashboard');
         }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login Successful!'), backgroundColor: Colors.green)
-        );
-
-        await Future.delayed(const Duration(milliseconds: 500));
-
-        if (!mounted) return;
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HomeScreen(role: userRole),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Invalid credentials for ${widget.role}'), backgroundColor: Colors.red),
-        );
+      } 
+      else {
+        Navigator.pushReplacementNamed(context, '/home');
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Invalid Credentials")),
+      );
     }
+  }
+
+  void _showPendingDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Account Pending"),
+        content: const Text("Admin is reviewing your docs. Please wait for approval."),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("${widget.role.toUpperCase()} Login"), 
-        backgroundColor: _roleColor,
-        foregroundColor: Colors.white,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(30.0),
+      body: Container(
+        padding: const EdgeInsets.all(25.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(Icons.lock_outline, size: 80, color: _roleColor),
-            const SizedBox(height: 30),
+            const Text(
+              "Welcome Back",
+              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 40),
             TextField(
-              controller: _emailController, 
-              decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder())
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder()),
             ),
             const SizedBox(height: 15),
             TextField(
-              controller: _passwordController, 
-              decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()), 
-              obscureText: true
+              controller: _passwordController,
+              decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()),
+              obscureText: true,
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 25),
             _isLoading 
-              ? const CircularProgressIndicator() 
-              : SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _handleLogin, 
-                    style: ElevatedButton.styleFrom(backgroundColor: _roleColor),
-                    child: const Text("LOGIN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
+              ? const Center(child: CircularProgressIndicator()) 
+              : ElevatedButton(
+                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 15)),
+                  onPressed: _handleLogin, 
+                  child: const Text("LOGIN"),
                 ),
             const SizedBox(height: 20),
-            TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => RegisterScreen(role: widget.role)),
-                );
-              },
-              child: Text(
-                "New ${widget.role}? Create account",
-                style: TextStyle(color: _roleColor, fontWeight: FontWeight.bold),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text("Don't have an account? "),
+                GestureDetector(
+                  onTap: () => Navigator.pushNamed(context, '/register'),
+                  child: const Text(
+                    "Register Here",
+                    style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

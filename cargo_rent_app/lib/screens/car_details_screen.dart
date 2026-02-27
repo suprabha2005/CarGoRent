@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/car_model.dart';
-import '../services/api_service.dart'; // Ensure this import exists
-import 'package:intl/intl.dart';
+import '../services/api_service.dart';
 
 class CarDetailsScreen extends StatefulWidget {
-  final Car car;
+  final dynamic car;
   const CarDetailsScreen({super.key, required this.car});
 
   @override
@@ -12,23 +10,18 @@ class CarDetailsScreen extends StatefulWidget {
 }
 
 class _CarDetailsScreenState extends State<CarDetailsScreen> {
-  DateTimeRange? _selectedDateRange;
-  final ApiService _apiService = ApiService(); // Initialize ApiService
+  final ApiService _apiService = ApiService();
+  DateTimeRange? _selectedRange;
 
   void _selectDates() async {
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
-      initialDateRange: _selectedDateRange,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1A237E),
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
+            colorScheme: const ColorScheme.light(primary: Color(0xFF1A237E)),
           ),
           child: child!,
         );
@@ -36,180 +29,164 @@ class _CarDetailsScreenState extends State<CarDetailsScreen> {
     );
 
     if (picked != null) {
-      setState(() {
-        _selectedDateRange = picked;
-      });
+      setState(() => _selectedRange = picked);
+      _showConfirmationDialog();
     }
   }
 
-  double _calculateTotal() {
-    if (_selectedDateRange == null) return 0.0;
-    int days = _selectedDateRange!.duration.inDays;
-    return (days == 0 ? 1 : days) * widget.car.pricePerDay;
+  void _showConfirmationDialog() {
+    final days = _selectedRange!.duration.inDays + 1;
+    final pricePerDay = widget.car['pricePerDay'] ?? 0;
+    final total = days * (pricePerDay as num);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Confirm Your Booking"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Car: ${widget.car['name']}"),
+            Text("Duration: $days days"),
+            const SizedBox(height: 10),
+            Text("Total Cost: \$${total.toStringAsFixed(2)}", 
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.green)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A237E)),
+            onPressed: () => _confirmBooking(total),
+            child: const Text("Confirm", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmBooking(num total) async {
+    Navigator.pop(context); // Close dialog
+    
+    // FIXED: Robust Vendor ID extraction
+    dynamic rawVendor = widget.car['vendor'];
+    String? vendorId;
+
+    if (rawVendor is Map) {
+      vendorId = rawVendor['_id'];
+    } else if (rawVendor is String) {
+      vendorId = rawVendor;
+    }
+
+    if (vendorId == null || vendorId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error: Owner information missing for this car."), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final success = await _apiService.createBooking({
+      "carId": widget.car['_id'],
+      "vendorId": vendorId,
+      "startDate": _selectedRange!.start.toIso8601String(),
+      "endDate": _selectedRange!.end.toIso8601String(),
+      "totalPrice": total,
+    });
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Booking Request Sent Successfully!"), backgroundColor: Colors.green),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to create booking. Please try again."), backgroundColor: Colors.red),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final vendorName = (widget.car['vendor'] is Map) 
+        ? widget.car['vendor']['name'] 
+        : "Verified Vendor";
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 300,
+            expandedHeight: 350,
             pinned: true,
+            backgroundColor: const Color(0xFF1A237E),
             flexibleSpace: FlexibleSpaceBar(
               background: Image.network(
-                widget.car.imageUrl,
+                // FIXED: Using Proxy URL for images
+                _apiService.getProxyUrl(widget.car['imageUrl'] ?? ''),
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.directions_car, size: 100, color: Colors.grey),
-                ),
+                errorBuilder: (context, error, stackTrace) => 
+                    Container(color: Colors.grey[300], child: const Icon(Icons.directions_car, size: 100)),
               ),
             ),
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(widget.car['brand']?.toUpperCase() ?? 'CAR', 
+                    style: const TextStyle(fontSize: 14, letterSpacing: 1.2, color: Colors.indigo, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text(widget.car['name'] ?? 'Car Name', 
+                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        widget.car.brand.toUpperCase(),
-                        style: TextStyle(
-                            color: Colors.orange.shade800,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(widget.car.type,
-                            style: const TextStyle(color: Colors.blue)),
-                      ),
+                      const Icon(Icons.star, color: Colors.orange, size: 20),
+                      const SizedBox(width: 4),
+                      const Text("4.8 (Recent Bookings)", style: TextStyle(color: Colors.grey)),
+                      const Spacer(),
+                      Text("\$${widget.car['pricePerDay']}", 
+                        style: const TextStyle(fontSize: 24, color: Colors.green, fontWeight: FontWeight.bold)),
+                      const Text("/day", style: TextStyle(color: Colors.grey)),
                     ],
                   ),
+                  const Divider(height: 40),
+                  const Text("Description", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text(
-                    widget.car.name,
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                  ),
+                  // NOTE: This is still a placeholder until you add a 'description' field to your Car model
+                  Text(widget.car['description'] ?? "Experience comfort and style with this vehicle. Well-maintained and perfect for your next trip.", 
+                    style: const TextStyle(color: Colors.grey, height: 1.5)),
                   const SizedBox(height: 20),
-                  const Text(
-                    "Vehicle Description",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const CircleAvatar(backgroundColor: Colors.indigo, child: Icon(Icons.person, color: Colors.white)),
+                    title: Text("Hosted by $vendorName"),
+                    subtitle: const Text("Professional Host"),
                   ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    "Experience premium comfort and performance with this vehicle. Perfect for long trips or city driving. Includes full insurance and 24/7 roadside assistance.",
-                    style: TextStyle(color: Colors.grey, height: 1.5),
-                  ),
-                  const SizedBox(height: 30),
-                  const Text("Select Rental Period",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  InkWell(
-                    onTap: _selectDates,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.calendar_month, color: Color(0xFF1A237E)),
-                          const SizedBox(width: 15),
-                          Text(
-                            _selectedDateRange == null
-                                ? "Pick start and end dates"
-                                : "${DateFormat('MMM dd').format(_selectedDateRange!.start)} - ${DateFormat('MMM dd').format(_selectedDateRange!.end)}",
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 100), // Space for bottom bar
+                  const SizedBox(height: 100), 
                 ],
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: Container(
+      bottomSheet: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: [
-            BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 1)
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, spreadRadius: 5)],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("Total Price", style: TextStyle(color: Colors.grey)),
-                Text(
-                  "\$${_calculateTotal().toStringAsFixed(0)}",
-                  style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1A237E)),
-                ),
-              ],
-            ),
-            SizedBox(
-              width: 180,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _selectedDateRange == null
-                    ? null
-                    : () async {
-                        // START BOOKING LOGIC
-                        final bookingData = {
-                          "carId": widget.car.id,
-                          "startDate": _selectedDateRange!.start.toIso8601String(),
-                          "endDate": _selectedDateRange!.end.toIso8601String(),
-                          "totalPrice": _calculateTotal(),
-                        };
-
-                        final success = await _apiService.createBooking(bookingData);
-
-                        if (success && mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text("Booking Successful!"),
-                                backgroundColor: Colors.green),
-                          );
-                          Navigator.pop(context); // Go back to home screen
-                        } else if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text("Booking Failed. Try again."),
-                                backgroundColor: Colors.red),
-                          );
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A237E),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text("BOOK NOW",
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
+        child: ElevatedButton(
+          onPressed: _selectDates,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1A237E),
+            minimumSize: const Size(double.infinity, 55),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: const Text("CHECK AVAILABILITY & BOOK", 
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
         ),
       ),
     );

@@ -1,31 +1,29 @@
 name: cargo_rent_app
-description: "A new Flutter project."
+description: "A professional car rental marketplace application."
 publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.8.1
+  sdk: '>=3.2.3 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-
-  # External Packages (Properly Aligned)
-  intl: ^0.19.0
-  cupertino_icons: ^1.0.8
-  http: ^1.6.0
-  flutter_secure_storage: ^10.0.0
-  provider: ^6.1.5+1
+  cupertino_icons: ^1.0.6
+  http: ^1.1.0
+  flutter_secure_storage: ^9.0.0
+  image_picker: ^1.0.7
+  url_launcher: ^6.3.1  # Added to fix Admin Dashboard errors
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
 
-  # To add assets later, uncomment the lines below:
+  # If you add assets like logos later, they go here:
   # assets:
-  #   - assets/images/
+  #   - assets/images/logo.png

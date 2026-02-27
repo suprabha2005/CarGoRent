@@ -1,48 +1,95 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 
-// Define the Booking Schema directly if not already in a separate models file
-const bookingSchema = new mongoose.Schema({
-    carId: { type: mongoose.Schema.Types.ObjectId, ref: 'Car', required: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    startDate: { type: Date, required: true },
-    endDate: { type: Date, required: true },
-    totalPrice: { type: Number, required: true },
-    status: { type: String, default: 'Confirmed' },
-    createdAt: { type: Date, default: Date.now }
-});
+// --- 1. IMPORT THE MODEL ---
+// We only import it. DO NOT define 'const BookingSchema' or 'mongoose.model' here.
+const Booking = require('../models/Bookings');
 
-const Booking = mongoose.model('Booking', bookingSchema);
+// --- HELPER: VERIFY TOKEN ---
+const verifyToken = (req) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return null;
+    try {
+        return jwt.verify(token, 'secret_key_123');
+    } catch (err) {
+        return null;
+    }
+};
 
-// POST: /api/bookings/create
+// --- 2. CREATE BOOKING ---
 router.post('/create', async (req, res) => {
     try {
-        console.log("📥 Incoming Booking Request:", req.body); // Check terminal to see if data arrives
-
-        const { carId, userId, startDate, endDate, totalPrice } = req.body;
-
-        // 1. Validate that all fields exist
-        if (!carId || !userId || !startDate || !endDate || !totalPrice) {
-            console.log("❌ Validation Failed: Missing fields");
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        // 2. Create the booking document
+        const { carId, customerId, vendorId, startDate, endDate, totalPrice } = req.body;
+        
         const newBooking = new Booking({
             carId,
-            userId,
+            customerId,
+            vendorId,
             startDate,
             endDate,
             totalPrice
         });
 
-        const savedBooking = await newBooking.save();
-        console.log("✅ Booking Saved Successfully:", savedBooking._id);
-        
-        res.status(201).json(savedBooking);
+        await newBooking.save();
+        res.status(201).json({ message: "Booking created successfully", booking: newBooking });
     } catch (err) {
-        console.error("🔥 Server Error during booking:", err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- 3. VENDOR: VIEW REQUESTS ---
+router.get('/vendor-requests', async (req, res) => {
+    try {
+        const decoded = verifyToken(req);
+        if (!decoded) return res.status(401).json({ message: "Unauthorized" });
+
+        const requests = await Booking.find({ vendorId: decoded.id })
+            .populate('carId')
+            .populate('customerId', 'name email')
+            .sort({ createdAt: -1 });
+            
+        res.json(requests);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- 4. VENDOR: UPDATE STATUS ---
+router.post('/update-status', async (req, res) => {
+    try {
+        const { bookingId, status } = req.body;
+        
+        if (!['confirmed', 'cancelled'].includes(status)) {
+            return res.status(400).json({ message: "Invalid status update" });
+        }
+
+        const updatedBooking = await Booking.findByIdAndUpdate(
+            bookingId,
+            { status: status },
+            { new: true }
+        );
+
+        if (!updatedBooking) return res.status(404).json({ message: "Booking not found" });
+        
+        res.json({ message: `Booking marked as ${status}`, booking: updatedBooking });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- 5. CUSTOMER: VIEW MY BOOKINGS ---
+router.get('/my-bookings', async (req, res) => {
+    try {
+        const decoded = verifyToken(req);
+        if (!decoded) return res.status(401).json({ message: "Unauthorized" });
+
+        const bookings = await Booking.find({ customerId: decoded.id })
+            .populate('carId', 'name imageUrl brand pricePerDay')
+            .sort({ createdAt: -1 });
+            
+        res.json(bookings);
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
