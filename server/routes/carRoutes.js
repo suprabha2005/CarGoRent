@@ -1,42 +1,34 @@
 const express = require('express');
 const router = express.Router();
-const Car = require('../models/Car');
+const Car = require('../models/car.js'); // Matching your file name from the image
 
-// 1. Add a new car
-router.post('/add', async (req, res) => {
-    try {
-        console.log("Incoming Car Data:", req.body); 
-        const newCar = new Car(req.body);
-        await newCar.save();
-        res.status(201).json(newCar);
-    } catch (err) {
-        console.error("ADD CAR ERROR:", err.message);
-        res.status(400).json({ message: err.message });
-    }
-});
-
-// 2. Fetch all cars (Used by Customer Home)
-// CRITICAL: We populate 'vendorId' so the frontend gets the User object
+// Get all cars with optional filters
 router.get('/', async (req, res) => {
     try {
-        const cars = await Car.find()
-            .populate('vendorId', 'name email') // This matches the field in your Car model
-            .sort({ createdAt: -1 });
-        res.json(cars);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+        const { search, type } = req.query;
+        let query = {};
 
-// 3. Fetch cars for a specific Vendor (Used by Vendor Dashboard)
-router.get('/vendor/:vendorId', async (req, res) => {
-    try {
-        const { vendorId } = req.params;
-        const cars = await Car.find({ vendorId: vendorId });
-        res.json(cars);
-    } catch (err) {
-        console.error("FETCH VENDOR CARS ERROR:", err.message);
-        res.status(500).json({ error: err.message });
+        // 1. If search text exists, look for matches in Name or Brand
+        if (search && search.trim() !== "") {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { brand: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // 2. IMPORTANT: If type is "All", we don't add it to the query.
+        // This ensures the database returns everything.
+        if (type && type !== "All" && type.trim() !== "") {
+            query.type = type;
+        }
+
+        console.log("Query constructed:", query); // Check your terminal to see what's being sent to DB
+
+        const cars = await Car.find(query);
+        res.status(200).json(cars);
+    } catch (error) {
+        console.error("Error fetching cars:", error);
+        res.status(500).json({ message: "Server Error" });
     }
 });
 

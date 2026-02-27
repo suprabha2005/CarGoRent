@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../models/car_model.dart';
 
 class ApiService {
+  // Use 10.0.2.2 if testing on Android Emulator, localhost for Web/iOS
   final String baseUrl = "http://localhost:5000/api"; 
   final _storage = const FlutterSecureStorage();
 
@@ -75,28 +76,42 @@ class ApiService {
         return body.map((item) {
           Car car = Car.fromJson(item);
           return car.copyWith(imageUrl: getProxyUrl(car.imageUrl));
-        }).toList().cast<Car>(); // Explicit cast
+        }).toList().cast<Car>();
       }
       return [];
-    } catch (e) { return []; }
+    } catch (e) { 
+      debugPrint("API Error fetchAllCars: $e");
+      return []; 
+    }
   }
 
   Future<List<Car>> fetchCars({String? search, String? type}) async {
+    // If no filters are applied, just call the clean fetchAllCars endpoint
+    if ((search == null || search.isEmpty) && (type == null || type == "All")) {
+      return fetchAllCars();
+    }
+
     try {
-      String url = "$baseUrl/cars?";
-      if (search != null && search.isNotEmpty) url += "search=${Uri.encodeComponent(search)}&";
-      if (type != null && type != "All") url += "type=${Uri.encodeComponent(type)}";
+      final queryParameters = <String, String>{};
+      if (search != null && search.isNotEmpty) queryParameters['search'] = search;
+      if (type != null && type != "All") queryParameters['type'] = type;
+
+      final uri = Uri.parse("$baseUrl/cars").replace(queryParameters: queryParameters);
       
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(uri);
+      
       if (response.statusCode == 200) {
         List<dynamic> body = jsonDecode(response.body);
         return body.map((item) {
           Car car = Car.fromJson(item);
           return car.copyWith(imageUrl: getProxyUrl(car.imageUrl));
-        }).toList().cast<Car>(); // Explicit cast
+        }).toList().cast<Car>();
       }
       return [];
-    } catch (e) { return []; }
+    } catch (e) { 
+      debugPrint("API Error fetchCars: $e");
+      return []; 
+    }
   }
 
   Future<List<Car>> fetchVendorCars(String userId) async {
@@ -107,7 +122,7 @@ class ApiService {
         return body.map((item) {
           Car car = Car.fromJson(item);
           return car.copyWith(imageUrl: getProxyUrl(car.imageUrl));
-        }).toList().cast<Car>(); // Explicit cast
+        }).toList().cast<Car>();
       }
       return [];
     } catch (e) { return []; }

@@ -9,13 +9,9 @@ const axios = require('axios');
 // 1. Load Environment Variables
 dotenv.config();
 
-// 2. Import Models (ONLY ONCE)
+// 2. Import Models
 const User = require('./models/User'); 
-const Car = require('./models/Car');
-
-/** * UPDATED: Pointing to 'Bookings.js' (Capital B, plural)
- * to match your actual filename exactly.
- */
+const Car = require('./models/car');
 const Booking = require('./models/Bookings'); 
 
 // 3. Import Routes
@@ -29,8 +25,9 @@ app.use(cors());
 app.use(express.json());
 
 // 5. Database Connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/CarGoRent')
-    .then(() => console.log('MongoDB Connected ✅'))
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/CarGoRent';
+mongoose.connect(MONGO_URI)
+    .then(() => console.log(`MongoDB Connected to: ${MONGO_URI} ✅`))
     .catch(err => console.log('DB connection error:', err));
 
 // --- 6. IMAGE PROXY ROUTE ---
@@ -129,7 +126,6 @@ app.get('/api/admin/stats', async (req, res) => {
         const pendingVendors = await User.countDocuments({ verificationStatus: 'pending' });
         const totalCars = await Car.countDocuments();
         
-        // Revenue logic remains the same (sums confirmed bookings)
         const revenueData = await Booking.aggregate([
             { $match: { status: 'confirmed' } },
             { $group: { _id: null, total: { $sum: "$totalPrice" } } }

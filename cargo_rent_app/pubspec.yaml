@@ -1,7 +1,6 @@
 name: cargo_rent_app
 description: "A professional car rental marketplace application."
 publish_to: 'none'
-
 version: 1.0.0+1
 
 environment:
@@ -15,8 +14,9 @@ dependencies:
   flutter_secure_storage: ^9.0.0
   image_picker: ^1.0.7
   url_launcher: ^6.3.1
-  flutter_stripe: ^10.1.1 # ADDED FOR PAYMENTS
+  flutter_stripe: ^10.1.1
   intl: ^0.20.2
+  flutter_animate: ^4.5.0 # Fixed: Now grouped correctly under dependencies
 
 dev_dependencies:
   flutter_test:
