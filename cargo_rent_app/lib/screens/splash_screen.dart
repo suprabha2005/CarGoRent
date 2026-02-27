@@ -18,16 +18,13 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateToNext() async {
-    // Small delay for branding
     await Future.delayed(const Duration(seconds: 3));
-
     String? token = await _apiService.getToken();
     String? role = await _apiService.getRole();
 
     if (!mounted) return;
 
     if (token != null && role != null) {
-      // Redirect based on role stored in SecureStorage
       if (role == 'admin') {
         Navigator.pushReplacementNamed(context, '/admin_dashboard');
       } else if (role == 'vendor') {
@@ -36,32 +33,35 @@ class _SplashScreenState extends State<SplashScreen> {
         Navigator.pushReplacementNamed(context, '/home');
       }
     } else {
-      // No token found, go to login
-      Navigator.pushReplacementNamed(context, '/login');
+      Navigator.pushReplacementNamed(context, '/landing');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF1A237E),
-      body: Center(
+    return Scaffold(
+      body: Container(
+        width: double.infinity,
+        color: const Color(0xFF0F172A), 
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.directions_car_filled, size: 100, color: Colors.white),
-            SizedBox(height: 20),
-            Text(
+            const Icon(Icons.directions_car_filled_rounded, size: 64, color: Colors.white),
+            const SizedBox(height: 24),
+            const Text(
               "CarGoRent",
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
+                fontSize: 28,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.5,
               ),
             ),
-            SizedBox(height: 10),
-            CircularProgressIndicator(color: Colors.white),
+            const SizedBox(height: 60),
+            const CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white38),
+            ),
           ],
         ),
       ),

@@ -13,23 +13,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _adminCodeController = TextEditingController();
-  
   String _selectedRole = "customer";
   final _apiService = ApiService();
   bool _isLoading = false;
 
   void _handleRegister() async {
-    // Basic validation
     if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill in all required fields")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill in all fields")));
       return;
     }
-
     setState(() => _isLoading = true);
-
-    // Fixed: Using NAMED parameters to match the updated ApiService
     final success = await _apiService.register(
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
@@ -37,96 +30,97 @@ class _RegisterScreenState extends State<RegisterScreen> {
       role: _selectedRole,
       adminCode: _selectedRole == 'admin' ? _adminCodeController.text.trim() : null,
     );
-
     setState(() => _isLoading = false);
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Registration Successful! Please Login.")),
-      );
-      Navigator.pop(context); // Go back to Login
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Success! Please Login.")));
+      Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Registration Failed. Email might be taken or Admin Key is wrong.")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Registration Failed")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Create Account")),
+      backgroundColor: Colors.white,
+      appBar: AppBar(backgroundColor: Colors.white, elevation: 0, iconTheme: const IconThemeData(color: Colors.black)),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(25.0),
+        padding: const EdgeInsets.symmetric(horizontal: 30),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Join CarGoRent",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
+            const Text("Create\nAccount", style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, height: 1.2)),
             const SizedBox(height: 30),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: "Full Name", border: OutlineInputBorder()),
-            ),
+            _buildField(_nameController, "Full Name", Icons.person_outline),
             const SizedBox(height: 15),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: "Email", border: OutlineInputBorder()),
-            ),
+            _buildField(_emailController, "Email", Icons.email_outlined),
             const SizedBox(height: 15),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()),
-              obscureText: true,
+            _buildField(_passwordController, "Password", Icons.lock_outline, obscure: true),
+            const SizedBox(height: 25),
+            const Text("Register as:", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _roleChip("customer", "User"),
+                const SizedBox(width: 10),
+                _roleChip("vendor", "Vendor"),
+                const SizedBox(width: 10),
+                _roleChip("admin", "Admin"),
+              ],
             ),
-            const SizedBox(height: 20),
-            
-            // ROLE DROPDOWN
-            const Text("Register as:", style: TextStyle(fontWeight: FontWeight.bold)),
-            DropdownButton<String>(
-              value: _selectedRole,
-              isExpanded: true,
-              items: ["customer", "vendor", "admin"].map((String role) {
-                return DropdownMenuItem<String>(
-                  value: role,
-                  child: Text(role.toUpperCase()),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() => _selectedRole = value!);
-              },
-            ),
-
-            // ADMIN KEY FIELD (Only shows if admin is selected)
             if (_selectedRole == 'admin') ...[
               const SizedBox(height: 15),
-              TextField(
-                controller: _adminCodeController,
-                decoration: const InputDecoration(
-                  labelText: "Admin Secret Key",
-                  hintText: "Enter 12345",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock_person),
-                ),
-              ),
+              _buildField(_adminCodeController, "Admin Code", Icons.verified_user_outlined),
             ],
-
-            const SizedBox(height: 30),
-            _isLoading 
-              ? const Center(child: CircularProgressIndicator()) 
-              : ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    backgroundColor: const Color(0xFF1A237E),
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: _handleRegister, 
-                  child: const Text("REGISTER"),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _handleRegister,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
+                child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("REGISTER", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _roleChip(String value, String label) {
+    bool isSelected = _selectedRole == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedRole = value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF2D31FA) : const Color(0xFFF5F6F9),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(child: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.black, fontWeight: FontWeight.bold))),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildField(TextEditingController controller, String hint, IconData icon, {bool obscure = false}) {
+    return Container(
+      decoration: BoxDecoration(color: const Color(0xFFF5F6F9), borderRadius: BorderRadius.circular(15)),
+      child: TextField(
+        controller: controller,
+        obscureText: obscure,
+        decoration: InputDecoration(
+          hintText: hint,
+          prefixIcon: Icon(icon, color: Colors.grey[400]),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 18),
         ),
       ),
     );

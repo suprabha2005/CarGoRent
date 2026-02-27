@@ -25,11 +25,13 @@ class _VendorDashboardState extends State<VendorDashboard> {
     setState(() => _isLoading = true);
     final userId = await _apiService.getUserId();
     if (userId != null) {
-      final cars = await _apiService.fetchVendorCars(userId);
-      final requests = await _apiService.fetchVendorRequests();
+      final results = await Future.wait([
+        _apiService.fetchVendorCars(userId),
+        _apiService.fetchVendorRequests(),
+      ]);
       setState(() {
-        _myCars = cars;
-        _rentalRequests = requests;
+        _myCars = results[0];
+        _rentalRequests = results[1];
         _isLoading = false;
       });
     }
@@ -38,10 +40,8 @@ class _VendorDashboardState extends State<VendorDashboard> {
   void _handleStatusUpdate(String bookingId, String status) async {
     final success = await _apiService.updateBookingStatus(bookingId, status);
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Booking $status successfully!")),
-      );
-      _loadDashboardData(); // Refresh list
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Booking $status!")));
+      _loadDashboardData(); 
     }
   }
 
@@ -50,24 +50,24 @@ class _VendorDashboardState extends State<VendorDashboard> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FB),
         appBar: AppBar(
-          title: const Text("Vendor Panel"),
-          backgroundColor: Colors.indigo[900],
-          foregroundColor: Colors.white,
+          title: const Text("Vendor Panel", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+          backgroundColor: Colors.white,
+          elevation: 0,
           actions: [
-            // ADDED: Logout Button
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () async {
-                await _apiService.logout();
-                Navigator.pushReplacementNamed(context, '/login');
-              },
-            ),
+            IconButton(icon: const Icon(Icons.logout, color: Colors.redAccent), onPressed: () async {
+              await _apiService.logout();
+              Navigator.pushReplacementNamed(context, '/login');
+            }),
           ],
           bottom: const TabBar(
+            labelColor: Color(0xFF2D31FA),
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Color(0xFF2D31FA),
             tabs: [
-              Tab(icon: Icon(Icons.directions_car), text: "My Fleet"),
-              Tab(icon: Icon(Icons.notifications), text: "Rental Requests"),
+              Tab(text: "My Fleet"),
+              Tab(text: "Requests"),
             ],
           ),
         ),
@@ -79,13 +79,11 @@ class _VendorDashboardState extends State<VendorDashboard> {
                   _buildRequestsTab(),
                 ],
               ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () => Navigator.push(
-            context, 
-            MaterialPageRoute(builder: (context) => const AddCarScreen())
-          ).then((_) => _loadDashboardData()),
-          backgroundColor: Colors.indigo[900],
-          child: const Icon(Icons.add, color: Colors.white),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AddCarScreen())).then((_) => _loadDashboardData()),
+          backgroundColor: const Color(0xFF1A1A1A),
+          icon: const Icon(Icons.add, color: Colors.white),
+          label: const Text("Add Car", style: TextStyle(color: Colors.white)),
         ),
       ),
     );
@@ -95,68 +93,89 @@ class _VendorDashboardState extends State<VendorDashboard> {
     return _myCars.isEmpty
         ? const Center(child: Text("No cars listed yet."))
         : ListView.builder(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(16),
             itemCount: _myCars.length,
-            itemBuilder: (context, i) => Card(
-              child: ListTile(
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Image.network(
-                    // FIXED: Using Proxy URL for images
-                    _apiService.getProxyUrl(_myCars[i]['imageUrl'] ?? ""), 
-                    width: 60, 
-                    height: 60,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.directions_car, size: 40),
-                  ),
+            itemBuilder: (context, i) {
+              final car = _myCars[i];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 15),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: Image.network(_apiService.getProxyUrl(car['imageUrl'] ?? ""), width: 80, height: 80, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.directions_car, size: 40)),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("${car['brand']} ${car['name']}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text("₹${car['pricePerDay']}/day", style: const TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(color: car['isAvailable'] ? Colors.green[50] : Colors.orange[50], borderRadius: BorderRadius.circular(10)),
+                      child: Text(car['isAvailable'] ? "Active" : "Rented", style: TextStyle(color: car['isAvailable'] ? Colors.green : Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)),
+                    )
+                  ],
                 ),
-                title: Text("${_myCars[i]['brand']} ${_myCars[i]['name']}"),
-                subtitle: Text("\$${_myCars[i]['pricePerDay']}/day"),
-              ),
-            ),
+              );
+            },
           );
   }
 
   Widget _buildRequestsTab() {
     return _rentalRequests.isEmpty
-        ? const Center(child: Text("No active rental requests."))
+        ? const Center(child: Text("No active requests."))
         : ListView.builder(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(16),
             itemCount: _rentalRequests.length,
             itemBuilder: (context, i) {
               final req = _rentalRequests[i];
-              final bool isPending = req['status'] == 'pending';
-
-              return Card(
-                elevation: 3,
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: ListTile(
-                  title: Text("Booking for: ${req['carId'] != null ? req['carId']['name'] : 'Unknown Car'}"),
-                  subtitle: Text(
-                    "Customer: ${req['customerId'] != null ? req['customerId']['name'] : 'Guest'}\n"
-                    "Status: ${req['status'].toUpperCase()}",
-                    style: TextStyle(
-                      color: req['status'] == 'confirmed' ? Colors.green : 
-                             req['status'] == 'cancelled' ? Colors.red : Colors.orange,
-                      fontWeight: FontWeight.bold
+              return Container(
+                margin: const EdgeInsets.only(bottom: 15),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(req['carId']?['name'] ?? 'Car', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                        Text(req['status'].toUpperCase(), style: TextStyle(color: req['status'] == 'confirmed' ? Colors.green : Colors.orange, fontWeight: FontWeight.bold)),
+                      ],
                     ),
-                  ),
-                  isThreeLine: true,
-                  trailing: isPending 
-                    ? Row(
-                        mainAxisSize: MainAxisSize.min,
+                    const SizedBox(height: 5),
+                    Text("Customer: ${req['customerId']?['name'] ?? 'User'}", style: const TextStyle(color: Colors.grey)),
+                    if (req['status'] == 'pending') ...[
+                      const SizedBox(height: 15),
+                      Row(
                         children: [
-                          IconButton(
-                            icon: const Icon(Icons.check_circle, color: Colors.green, size: 30),
-                            onPressed: () => _handleStatusUpdate(req['_id'], 'confirmed'),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _handleStatusUpdate(req['_id'], 'cancelled'),
+                              style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                              child: const Text("Reject", style: TextStyle(color: Colors.red)),
+                            ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.cancel, color: Colors.red, size: 30),
-                            onPressed: () => _handleStatusUpdate(req['_id'], 'cancelled'),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => _handleStatusUpdate(req['_id'], 'confirmed'),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                              child: const Text("Accept", style: TextStyle(color: Colors.white)),
+                            ),
                           ),
                         ],
                       )
-                    : const Icon(Icons.history, color: Colors.grey),
+                    ]
+                  ],
                 ),
               );
             },

@@ -1,77 +1,41 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
+const Car = require('../models/Car');
 
-// Define Car Schema
-const CarSchema = new mongoose.Schema({
-    brand: { type: String, required: true },
-    name: { type: String, required: true },
-    pricePerDay: { type: Number, required: true },
-    type: { type: String, required: true },
-    imageUrl: { type: String, required: true },
-    vendorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    isAvailable: { type: Boolean, default: true }
-});
-
-const Car = mongoose.models.Car || mongoose.model('Car', CarSchema);
-
-// --- ADD NEW CAR ---
-// This matches: http://localhost:5000/api/cars/add
+// 1. Add a new car
 router.post('/add', async (req, res) => {
     try {
-        const { brand, name, pricePerDay, type, imageUrl, vendorId } = req.body;
-        
-        // Basic validation check
-        if (!brand || !name || !pricePerDay || !vendorId) {
-            return res.status(400).json({ error: "Missing required fields" });
-        }
-
-        const newCar = new Car({
-            brand,
-            name,
-            pricePerDay,
-            type,
-            imageUrl,
-            vendorId
-        });
-
+        console.log("Incoming Car Data:", req.body); 
+        const newCar = new Car(req.body);
         await newCar.save();
-        res.status(201).json({ message: "Car added successfully", car: newCar });
+        res.status(201).json(newCar);
     } catch (err) {
-        console.error("Error adding car:", err);
-        res.status(500).json({ error: "Database error while adding car" });
+        console.error("ADD CAR ERROR:", err.message);
+        res.status(400).json({ message: err.message });
     }
 });
 
-// --- GET ALL CARS (For Customers) ---
-// This matches: http://localhost:5000/api/cars
+// 2. Fetch all cars (Used by Customer Home)
+// CRITICAL: We populate 'vendorId' so the frontend gets the User object
 router.get('/', async (req, res) => {
     try {
-        const { type, search } = req.query;
-        let query = {};
-        
-        if (type && type !== 'All') query.type = type;
-        if (search) {
-            query.$or = [
-                { brand: new RegExp(search, 'i') },
-                { name: new RegExp(search, 'i') }
-            ];
-        }
-
-        const cars = await Car.find(query);
+        const cars = await Car.find()
+            .populate('vendorId', 'name email') // This matches the field in your Car model
+            .sort({ createdAt: -1 });
         res.json(cars);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-// --- GET VENDOR SPECIFIC CARS ---
-// This matches: http://localhost:5000/api/cars/vendor/:vendorId
+// 3. Fetch cars for a specific Vendor (Used by Vendor Dashboard)
 router.get('/vendor/:vendorId', async (req, res) => {
     try {
-        const cars = await Car.find({ vendorId: req.params.vendorId });
+        const { vendorId } = req.params;
+        const cars = await Car.find({ vendorId: vendorId });
         res.json(cars);
     } catch (err) {
+        console.error("FETCH VENDOR CARS ERROR:", err.message);
         res.status(500).json({ error: err.message });
     }
 });

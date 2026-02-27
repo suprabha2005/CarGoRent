@@ -69,8 +69,8 @@ class _CarDetailsScreenState extends State<CarDetailsScreen> {
   void _confirmBooking(num total) async {
     Navigator.pop(context); // Close dialog
     
-    // FIXED: Robust Vendor ID extraction
-    dynamic rawVendor = widget.car['vendor'];
+    // UPDATED: Using 'vendorId' to match your Backend model
+    dynamic rawVendor = widget.car['vendorId']; 
     String? vendorId;
 
     if (rawVendor is Map) {
@@ -108,8 +108,9 @@ class _CarDetailsScreenState extends State<CarDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final vendorName = (widget.car['vendor'] is Map) 
-        ? widget.car['vendor']['name'] 
+    // UPDATED: Getting vendor name from 'vendorId' object
+    final vendorName = (widget.car['vendorId'] is Map) 
+        ? widget.car['vendorId']['name'] 
         : "Verified Vendor";
 
     return Scaffold(
@@ -121,7 +122,6 @@ class _CarDetailsScreenState extends State<CarDetailsScreen> {
             backgroundColor: const Color(0xFF1A237E),
             flexibleSpace: FlexibleSpaceBar(
               background: Image.network(
-                // FIXED: Using Proxy URL for images
                 _apiService.getProxyUrl(widget.car['imageUrl'] ?? ''),
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => 
@@ -145,7 +145,7 @@ class _CarDetailsScreenState extends State<CarDetailsScreen> {
                     children: [
                       const Icon(Icons.star, color: Colors.orange, size: 20),
                       const SizedBox(width: 4),
-                      const Text("4.8 (Recent Bookings)", style: TextStyle(color: Colors.grey)),
+                      const Text("4.8 (Verified Car)", style: TextStyle(color: Colors.grey)),
                       const Spacer(),
                       Text("\$${widget.car['pricePerDay']}", 
                         style: const TextStyle(fontSize: 24, color: Colors.green, fontWeight: FontWeight.bold)),
@@ -155,8 +155,7 @@ class _CarDetailsScreenState extends State<CarDetailsScreen> {
                   const Divider(height: 40),
                   const Text("Description", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  // NOTE: This is still a placeholder until you add a 'description' field to your Car model
-                  Text(widget.car['description'] ?? "Experience comfort and style with this vehicle. Well-maintained and perfect for your next trip.", 
+                  Text(widget.car['description'] ?? "No description available for this vehicle.", 
                     style: const TextStyle(color: Colors.grey, height: 1.5)),
                   const SizedBox(height: 20),
                   ListTile(

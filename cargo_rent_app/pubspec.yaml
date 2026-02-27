@@ -14,7 +14,9 @@ dependencies:
   http: ^1.1.0
   flutter_secure_storage: ^9.0.0
   image_picker: ^1.0.7
-  url_launcher: ^6.3.1  # Added to fix Admin Dashboard errors
+  url_launcher: ^6.3.1
+  flutter_stripe: ^10.1.1 # ADDED FOR PAYMENTS
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -23,7 +25,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  # If you add assets like logos later, they go here:
-  # assets:
-  #   - assets/images/logo.png
