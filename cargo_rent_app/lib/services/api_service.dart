@@ -3,9 +3,10 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
 import '../models/car_model.dart';
+import '../constants/app_constants.dart';
 
 class ApiService {
-  final String baseUrl = "http://localhost:5000/api";
+  final String baseUrl = AppConstants.baseUrl;
   final _storage = const FlutterSecureStorage();
 
   String getProxyUrl(String originalUrl) {
@@ -308,7 +309,6 @@ class ApiService {
     }
   }
 
-  // ✅ FIX #3 — Added auth token
   Future<bool> submitVendorDocs(String license, String idProof) async {
     try {
       final userId = await getUserId();
