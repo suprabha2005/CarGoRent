@@ -5,6 +5,7 @@ import '../../models/car_model.dart';
 import 'car_details_screen.dart';
 import '../auth/login_screen.dart';
 import 'my_bookings_screen.dart';
+import '../../utils/cached_image.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -366,10 +367,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 100,
                 width: double.infinity,
                 color: const Color(0xFFF0F4FF),
-                child: Image.network(
-                  car.imageUrl,
+                child: CachedImage(
+                  imageUrl: car.imageUrl,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Icon(Icons.directions_car, size: 40, color: Colors.grey.shade400),
+                  iconSize: 40,
                 ),
               ),
             ),

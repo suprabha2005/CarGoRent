@@ -74,7 +74,7 @@ class AppTheme {
         hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
         contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 15),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: backgroundCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
