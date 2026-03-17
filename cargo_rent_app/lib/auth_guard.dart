@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../services/api_service.dart';
-import '../screens/auth/../auth/login_screen.dart';
+import 'services/api_service.dart';
+import 'screens/auth/login_screen.dart';
 
 class AuthGuard extends StatefulWidget {
   final Widget child;
-  final List<String> allowedRoles; // e.g. ['admin'] or ['vendor'] or ['customer']
+  final List<String> allowedRoles;
 
   const AuthGuard({
     super.key,
@@ -32,7 +32,6 @@ class _AuthGuardState extends State<AuthGuard> {
     final role = await _api.getRole();
 
     if (token == null || role == null) {
-      // Not logged in at all
       setState(() {
         _checking = false;
         _allowed = false;
@@ -41,13 +40,11 @@ class _AuthGuardState extends State<AuthGuard> {
     }
 
     if (widget.allowedRoles.contains(role)) {
-      // Logged in AND correct role
       setState(() {
         _checking = false;
         _allowed = true;
       });
     } else {
-      // Logged in but wrong role
       setState(() {
         _checking = false;
         _allowed = false;
@@ -57,14 +54,12 @@ class _AuthGuardState extends State<AuthGuard> {
 
   @override
   Widget build(BuildContext context) {
-    // Still checking token
     if (_checking) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    // Not allowed — redirect to login
     if (!_allowed) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacement(
@@ -77,7 +72,6 @@ class _AuthGuardState extends State<AuthGuard> {
       );
     }
 
-    // Allowed — show the actual screen
     return widget.child;
   }
 }

@@ -38,18 +38,18 @@ class CarGoRentApp extends StatelessWidget {
         ),
         initialRoute: '/landing',
         routes: {
-          '/landing':   (context) => const LandingScreen(),
-          '/login':     (context) => const LoginScreen(),
-          '/register':  (context) => const RegisterScreen(),
-          '/home': (context) => AuthGuard(
+          '/landing':             (context) => const LandingScreen(),
+          '/login':               (context) => const LoginScreen(),
+          '/register':            (context) => const RegisterScreen(),
+          '/home':                (context) => AuthGuard(
             allowedRoles: ['customer'],
             child: const HomeScreen(),
           ),
-          '/vehicles': (context) => AuthGuard(
+          '/vehicles':            (context) => AuthGuard(
             allowedRoles: ['customer'],
             child: const VehicleListingScreen(),
           ),
-          '/vendor_dashboard': (context) => AuthGuard(
+          '/vendor_dashboard':    (context) => AuthGuard(
             allowedRoles: ['vendor'],
             child: const VendorDashboard(),
           ),
@@ -57,11 +57,11 @@ class CarGoRentApp extends StatelessWidget {
             allowedRoles: ['vendor'],
             child: const VendorVerificationScreen(),
           ),
-          '/vendor_pending': (context) => AuthGuard(
+          '/vendor_pending':      (context) => AuthGuard(
             allowedRoles: ['vendor'],
             child: const VendorPendingScreen(),
           ),
-          '/admin_dashboard': (context) => AuthGuard(
+          '/admin_dashboard':     (context) => AuthGuard(
             allowedRoles: ['admin'],
             child: const AdminDashboard(),
           ),

@@ -17,6 +17,8 @@ dependencies:
   flutter_stripe: ^10.1.1
   intl: ^0.20.2
   flutter_animate: ^4.5.0 # Fixed: Now grouped correctly under dependencies
+  provider: ^6.1.5+1
+  razorpay_flutter: ^1.4.1
 
 dev_dependencies:
   flutter_test:

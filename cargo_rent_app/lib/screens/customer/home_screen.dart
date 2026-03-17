@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../services/api_service.dart';
-import '../models/car_model.dart';
+import '../../services/api_service.dart';
+import '../../models/car_model.dart';
 import 'car_details_screen.dart';
-import 'login_screen.dart';
+import '../auth/login_screen.dart';
 import 'my_bookings_screen.dart';
 
 class HomeScreen extends StatefulWidget {

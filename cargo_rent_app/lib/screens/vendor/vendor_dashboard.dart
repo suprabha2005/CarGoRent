@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../services/api_service.dart';
-import '../models/car_model.dart';
+import '../../../services/api_service.dart';
+import '../../../models/car_model.dart';
 import 'add_car_screen.dart';
 import 'vendor_verification_screen.dart';
 

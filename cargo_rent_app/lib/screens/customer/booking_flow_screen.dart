@@ -1,9 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:http/http.dart' as http;
-import '../models/car_model.dart';
-import '../services/api_service.dart';
+import '../../models/car_model.dart';
+import '../../services/api_service.dart';
 
 class BookingFlowScreen extends StatefulWidget {
   final Car car;
@@ -21,20 +19,17 @@ class BookingFlowScreen extends StatefulWidget {
 
 class _BookingFlowScreenState extends State<BookingFlowScreen> {
   final ApiService _apiService = ApiService();
-  int _step = 0; // 0=Options 1=Details 2=Payment
+  int _step = 0;
 
-  // Brand Colors
   final Color navy = const Color(0xFF0F172A);
   final Color gold = const Color(0xFFFFD700);
   final Color blue = const Color(0xFF0052CC);
 
-  // ── Step 1: Options ──────────────────────────────────────────────
   bool _addInsurance = false;
   bool _addDriver = false;
   bool _addGPS = false;
   bool _addChildSeat = false;
 
-  // ── Step 2: Details ──────────────────────────────────────────────
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
@@ -42,11 +37,9 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
   String _idType = 'Aadhaar';
   bool _agreedToTerms = false;
 
-  // ── Step 3: Payment ──────────────────────────────────────────────
-  String _paymentMethod = 'online'; // 'online' | 'cash'
+  String _paymentMethod = 'online';
   bool _isSubmitting = false;
 
-  // ── Pricing calculations ─────────────────────────────────────────
   int get _days => widget.dateRange.end.difference(widget.dateRange.start).inDays + 1;
   double get _baseFare => widget.car.pricePerDay * _days;
   double get _insuranceFee => _addInsurance ? 299.0 * _days : 0.0;
@@ -165,9 +158,9 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context); // close dialog
-                    Navigator.pop(context); // close booking flow
-                    Navigator.pop(context); // close car details
+                    Navigator.pop(context);
+                    Navigator.pop(context);
+                    Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: navy,
@@ -211,8 +204,6 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     );
   }
 
-  // ── AppBar ────────────────────────────────────────────────────────
-
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: navy,
@@ -232,8 +223,6 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
       ),
     );
   }
-
-  // ── Stepper ───────────────────────────────────────────────────────
 
   Widget _buildStepper() {
     final steps = ["OPTIONS", "DETAILS", "PAYMENT"];
@@ -301,8 +290,6 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     );
   }
 
-  // ── Main Content ──────────────────────────────────────────────────
-
   Widget _buildMainContent() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -320,15 +307,12 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     );
   }
 
-  // ── Step 1: Options ───────────────────────────────────────────────
-
   Widget _buildOptionsStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _stepHeader("Rental Add-ons", "Customize your experience"),
         const SizedBox(height: 20),
-
         _sectionLabel("Per Day Extras"),
         const SizedBox(height: 10),
         _addonCard(
@@ -349,7 +333,6 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
           color: Colors.purple,
           onChanged: (v) => setState(() => _addGPS = v),
         ),
-
         const SizedBox(height: 20),
         _sectionLabel("One-time Extras"),
         const SizedBox(height: 10),
@@ -434,9 +417,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                     shape: BoxShape.circle,
                     border: Border.all(color: value ? color : Colors.grey.shade300, width: 2),
                   ),
-                  child: value
-                      ? const Icon(Icons.check, color: Colors.white, size: 14)
-                      : null,
+                  child: value ? const Icon(Icons.check, color: Colors.white, size: 14) : null,
                 ),
               ],
             ),
@@ -446,29 +427,23 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     );
   }
 
-  // ── Step 2: Details ───────────────────────────────────────────────
-
   Widget _buildDetailsStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _stepHeader("Your Details", "We need a few details to confirm your booking"),
         const SizedBox(height: 20),
-
         _fieldLabel("Full Name"),
         _inputField(_nameController, "e.g. Rahul Sharma", Icons.person_outline),
         const SizedBox(height: 16),
-
         _fieldLabel("Phone Number"),
         _inputField(_phoneController, "e.g. +91 98765 43210", Icons.phone_outlined,
             type: TextInputType.phone),
         const SizedBox(height: 16),
-
         _fieldLabel("Email Address"),
         _inputField(_emailController, "e.g. rahul@gmail.com", Icons.email_outlined,
             type: TextInputType.emailAddress),
         const SizedBox(height: 16),
-
         _fieldLabel("ID Type"),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -489,12 +464,9 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
           ),
         ),
         const SizedBox(height: 16),
-
         _fieldLabel("Driving License Number"),
         _inputField(_licenseController, "e.g. MH12-20240001234", Icons.credit_card_outlined),
         const SizedBox(height: 20),
-
-        // Terms
         GestureDetector(
           onTap: () => setState(() => _agreedToTerms = !_agreedToTerms),
           child: Row(
@@ -554,25 +526,18 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     );
   }
 
-  // ── Step 3: Payment ───────────────────────────────────────────────
-
   Widget _buildPaymentStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _stepHeader("Payment", "Choose how you'd like to pay"),
         const SizedBox(height: 20),
-
-        // Payment method selector
         _paymentOption('online', Icons.credit_card_outlined, 'Pay Online',
             'Credit / Debit Card, UPI, Net Banking', Colors.blue),
         const SizedBox(height: 10),
         _paymentOption('cash', Icons.money_outlined, 'Pay at Pickup',
             'Pay cash when you collect the car', Colors.green),
-
         const SizedBox(height: 24),
-
-        // Price breakdown
         _sectionLabel("Price Breakdown"),
         const SizedBox(height: 12),
         Container(
@@ -584,8 +549,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
           ),
           child: Column(
             children: [
-              _summaryRow("Base Fare (${widget.car.name} × $_days days)",
-                  "₹${_baseFare.toStringAsFixed(0)}"),
+              _summaryRow("Base Fare (${widget.car.name} × $_days days)", "₹${_baseFare.toStringAsFixed(0)}"),
               if (_addInsurance) _summaryRow("Insurance (₹299 × $_days)", "₹${_insuranceFee.toStringAsFixed(0)}"),
               if (_addDriver) _summaryRow("Additional Driver (₹500 × $_days)", "₹${_driverFee.toStringAsFixed(0)}"),
               if (_addGPS) _summaryRow("GPS Navigation (₹99 × $_days)", "₹${_gpsFee.toStringAsFixed(0)}"),
@@ -598,7 +562,6 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
             ],
           ),
         ),
-
         if (_paymentMethod == 'online') ...[
           const SizedBox(height: 20),
           _sectionLabel("Secure Payment"),
@@ -680,8 +643,6 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
     );
   }
 
-  // ── Nav Buttons ───────────────────────────────────────────────────
-
   Widget _buildNavButtons() {
     final canProceed = _step == 1
         ? (_nameController.text.isNotEmpty &&
@@ -702,8 +663,7 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: Text("← Back",
-                  style: TextStyle(color: navy, fontWeight: FontWeight.w900)),
+              child: Text("← Back", style: TextStyle(color: navy, fontWeight: FontWeight.w900)),
             ),
           ),
         if (_step > 0) const SizedBox(width: 12),
@@ -751,83 +711,76 @@ class _BookingFlowScreenState extends State<BookingFlowScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          Text("YOUR RENTAL",
-              style: TextStyle(
-                  color: navy, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
-          const SizedBox(height: 14),
-
-          // Car image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              height: 140,
-              width: double.infinity,
-              color: const Color(0xFFF0F4FF),
-              child: Image.network(
-                widget.car.imageUrl,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) =>
-                    Icon(Icons.directions_car, size: 60, color: Colors.grey.shade400),
+            Text("YOUR RENTAL",
+                style: TextStyle(
+                    color: navy, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                height: 140,
+                width: double.infinity,
+                color: const Color(0xFFF0F4FF),
+                child: Image.network(
+                  widget.car.imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) =>
+                      Icon(Icons.directions_car, size: 60, color: Colors.grey.shade400),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 14),
-
-          Text(widget.car.name,
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-          Text("${widget.car.brand} · ${widget.car.type}",
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
-
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 12),
-
-          // Booking info
-          _infoRow(Icons.calendar_today_outlined, "Pickup", _formatDate(widget.dateRange.start)),
-          const SizedBox(height: 8),
-          _infoRow(Icons.event_available_outlined, "Return", _formatDate(widget.dateRange.end)),
-          const SizedBox(height: 8),
-          _infoRow(Icons.access_time_outlined, "Duration", "$_days day${_days > 1 ? 's' : ''}"),
-
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 12),
-
-          // Price breakdown
-          _summaryRow("Base Fare", "₹${_baseFare.toStringAsFixed(0)}"),
-          if (_totalExtras > 0) _summaryRow("Add-ons", "₹${_totalExtras.toStringAsFixed(0)}"),
-          _summaryRow("GST (18%)", "₹${_tax.toStringAsFixed(0)}"),
-          const Divider(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("TOTAL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-              Text("₹${_total.toStringAsFixed(0)}",
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: blue)),
-            ],
-          ),
-
-          // 15 min timer note
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange.shade200),
-            ),
-            child: Row(
+            const SizedBox(height: 14),
+            Text(widget.car.name,
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+            Text("${widget.car.brand} · ${widget.car.type}",
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            _infoRow(Icons.calendar_today_outlined, "Pickup", _formatDate(widget.dateRange.start)),
+            const SizedBox(height: 8),
+            _infoRow(Icons.event_available_outlined, "Return", _formatDate(widget.dateRange.end)),
+            const SizedBox(height: 8),
+            _infoRow(Icons.access_time_outlined, "Duration", "$_days day${_days > 1 ? 's' : ''}"),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            _summaryRow("Base Fare", "₹${_baseFare.toStringAsFixed(0)}"),
+            if (_totalExtras > 0) _summaryRow("Add-ons", "₹${_totalExtras.toStringAsFixed(0)}"),
+            _summaryRow("GST (18%)", "₹${_tax.toStringAsFixed(0)}"),
+            const Divider(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(Icons.timer_outlined, color: Colors.orange.shade700, size: 16),
-                const SizedBox(width: 8),
-                Text("Complete booking within 15 mins",
-                    style: TextStyle(color: Colors.orange.shade700, fontSize: 11, fontWeight: FontWeight.w700)),
+                const Text("TOTAL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                Text("₹${_total.toStringAsFixed(0)}",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: blue)),
               ],
             ),
-          ),
-        ],
-      ),
-    );
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.timer_outlined, color: Colors.orange.shade700, size: 16),
+                  const SizedBox(width: 8),
+                  Text("Complete booking within 15 mins",
+                      style: TextStyle(
+                          color: Colors.orange.shade700,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ),
+          ],
+        ), // ✅ closes Column
+      ),   // ✅ closes SingleChildScrollView
+    );     // ✅ closes Container
   }
 
   // ── Helpers ───────────────────────────────────────────────────────
