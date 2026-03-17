@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import '../models/car_model.dart';
 
 class ApiService {
-  // Use 10.0.2.2 if testing on Android Emulator, localhost for Web/iOS
   final String baseUrl = "http://localhost:5000/api"; 
   final _storage = const FlutterSecureStorage();
 
@@ -86,7 +85,6 @@ class ApiService {
   }
 
   Future<List<Car>> fetchCars({String? search, String? type}) async {
-    // If no filters are applied, just call the clean fetchAllCars endpoint
     if ((search == null || search.isEmpty) && (type == null || type == "All")) {
       return fetchAllCars();
     }
@@ -97,7 +95,6 @@ class ApiService {
       if (type != null && type != "All") queryParameters['type'] = type;
 
       final uri = Uri.parse("$baseUrl/cars").replace(queryParameters: queryParameters);
-      
       final response = await http.get(uri);
       
       if (response.statusCode == 200) {
@@ -131,33 +128,86 @@ class ApiService {
   Future<bool> addCar(Map<String, dynamic> carData) async {
     try {
       final token = await getToken();
+
+      debugPrint("Add car payload: " + jsonEncode(carData));
+
       final response = await http.post(
         Uri.parse("$baseUrl/cars"),
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer $token"
+          "Authorization": "Bearer " + (token ?? "")
         },
         body: jsonEncode(carData),
       );
-      return response.statusCode == 201;
-    } catch (e) { return false; }
+
+      debugPrint("Add car response [" + response.statusCode.toString() + "]: " + response.body);
+
+      if (response.statusCode == 201) return true;
+
+      try {
+        final err = jsonDecode(response.body);
+        debugPrint("Backend error: " + (err["message"] ?? response.body));
+      } catch (_) {}
+
+      return false;
+    } catch (e) {
+      debugPrint("addCar exception: " + e.toString());
+      return false;
+    }
   }
 
   // --- BOOKING SYSTEM ---
-  
-  Future<bool> createBooking(Map<String, dynamic> bookingData) async {
+
+  Future<List<Map<String, dynamic>>> fetchBookedDates(String carId) async {
+    try {
+      final response = await http.get(
+        Uri.parse("$baseUrl/bookings/booked-dates/$carId"),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return List<Map<String, dynamic>>.from(data['bookedRanges']);
+      }
+      return [];
+    } catch (e) {
+      debugPrint("fetchBookedDates error: " + e.toString());
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> createBooking(Map<String, dynamic> bookingData) async {
     try {
       final token = await getToken();
+      final customerId = await getUserId();
+      bookingData["customerId"] = customerId ?? "";
+
       final response = await http.post(
-        Uri.parse("$baseUrl/bookings"),
+        Uri.parse("$baseUrl/bookings/create"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token"
         },
         body: jsonEncode(bookingData),
       );
-      return response.statusCode == 201;
-    } catch (e) { return false; }
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return {"success": true};
+      }
+
+      try {
+        final errorBody = jsonDecode(response.body);
+        final message = errorBody['message'] 
+            ?? errorBody['error'] 
+            ?? "Booking failed (${response.statusCode})";
+        return {"success": false, "message": message};
+      } catch (_) {
+        return {
+          "success": false, 
+          "message": "Server error (${response.statusCode})"
+        };
+      }
+    } catch (e) {
+      return {"success": false, "message": "Network error. Check your connection."};
+    }
   }
 
   Future<List<dynamic>> fetchMyBookings() async {
@@ -199,7 +249,10 @@ class ApiService {
   Future<Map<String, dynamic>> fetchAdminStats() async {
     try {
       final token = await getToken();
-      final response = await http.get(Uri.parse("$baseUrl/admin/stats"), headers: {"Authorization": "Bearer $token"});
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/stats"), 
+        headers: {"Authorization": "Bearer $token"}
+      );
       return response.statusCode == 200 ? jsonDecode(response.body) : {};
     } catch (e) { return {}; }
   }
@@ -207,7 +260,10 @@ class ApiService {
   Future<List<dynamic>> fetchPendingVendors() async {
     try {
       final token = await getToken();
-      final response = await http.get(Uri.parse("$baseUrl/admin/pending-vendors"), headers: {"Authorization": "Bearer $token"});
+      final response = await http.get(
+        Uri.parse("$baseUrl/admin/pending-vendors"), 
+        headers: {"Authorization": "Bearer $token"}
+      );
       return response.statusCode == 200 ? jsonDecode(response.body) : [];
     } catch (e) { return []; }
   }
@@ -218,18 +274,23 @@ class ApiService {
       final response = await http.post(
         Uri.parse("$baseUrl/admin/approve-vendor"), 
         headers: {"Content-Type": "application/json", "Authorization": "Bearer $token"}, 
-        body: jsonEncode({"vendorId": vendorId})
+        body: jsonEncode({"userId": vendorId})
       );
       return response.statusCode == 200;
     } catch (e) { return false; }
   }
 
+  // ✅ FIX #3 — Added auth token to protect this endpoint
   Future<bool> submitVendorDocs(String license, String idProof) async {
     try {
       final userId = await getUserId();
+      final token = await getToken(); // ✅ added
       final response = await http.post(
         Uri.parse("$baseUrl/auth/submit-docs"), 
-        headers: {"Content-Type": "application/json"}, 
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer ${token ?? ''}", // ✅ added
+        }, 
         body: jsonEncode({
           "userId": userId, 
           "businessLicense": license, 
