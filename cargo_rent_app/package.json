@@ -1,8 +1,0 @@
-{
-  "dependencies": {
-    "cors": "^2.8.6",
-    "crypto": "^1.0.1",
-    "razorpay": "^2.9.6",
-    "stripe": "^20.3.1"
-  }
-}
