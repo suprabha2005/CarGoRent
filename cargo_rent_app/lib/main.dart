@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'auth_guard.dart';
+import 'providers/auth_provider.dart';
+import 'providers/car_provider.dart';
+import 'providers/booking_provider.dart';
 import 'screens/landing_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -19,50 +23,50 @@ class CarGoRentApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'CarGoRent',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()..loadSession()),
+        ChangeNotifierProvider(create: (_) => CarProvider()),
+        ChangeNotifierProvider(create: (_) => BookingProvider()),
+      ],
+      child: MaterialApp(
+        title: 'CarGoRent',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+          useMaterial3: true,
+        ),
+        initialRoute: '/landing',
+        routes: {
+          '/landing':   (context) => const LandingScreen(),
+          '/login':     (context) => const LoginScreen(),
+          '/register':  (context) => const RegisterScreen(),
+          '/home': (context) => AuthGuard(
+            allowedRoles: ['customer'],
+            child: const HomeScreen(),
+          ),
+          '/vehicles': (context) => AuthGuard(
+            allowedRoles: ['customer'],
+            child: const VehicleListingScreen(),
+          ),
+          '/vendor_dashboard': (context) => AuthGuard(
+            allowedRoles: ['vendor'],
+            child: const VendorDashboard(),
+          ),
+          '/vendor_verification': (context) => AuthGuard(
+            allowedRoles: ['vendor'],
+            child: const VendorVerificationScreen(),
+          ),
+          '/vendor_pending': (context) => AuthGuard(
+            allowedRoles: ['vendor'],
+            child: const VendorPendingScreen(),
+          ),
+          '/admin_dashboard': (context) => AuthGuard(
+            allowedRoles: ['admin'],
+            child: const AdminDashboard(),
+          ),
+        },
       ),
-      initialRoute: '/landing',
-      routes: {
-        // ✅ Public routes — no guard needed
-        '/landing': (context) => const LandingScreen(),
-        '/login':   (context) => const LoginScreen(),
-        '/register':(context) => const RegisterScreen(),
-
-        // ✅ Customer routes — only logged in customers
-        '/home': (context) => AuthGuard(
-          allowedRoles: ['customer'],
-          child: const HomeScreen(),
-        ),
-        '/vehicles': (context) => AuthGuard(
-          allowedRoles: ['customer'],
-          child: const VehicleListingScreen(),
-        ),
-
-        // ✅ Vendor routes — only vendors
-        '/vendor_dashboard': (context) => AuthGuard(
-          allowedRoles: ['vendor'],
-          child: const VendorDashboard(),
-        ),
-        '/vendor_verification': (context) => AuthGuard(
-          allowedRoles: ['vendor'],
-          child: const VendorVerificationScreen(),
-        ),
-        '/vendor_pending': (context) => AuthGuard(
-          allowedRoles: ['vendor'],
-          child: const VendorPendingScreen(),
-        ),
-
-        // ✅ Admin routes — only admins
-        '/admin_dashboard': (context) => AuthGuard(
-          allowedRoles: ['admin'],
-          child: const AdminDashboard(),
-        ),
-      },
     );
   }
 }
