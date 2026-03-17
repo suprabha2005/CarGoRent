@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'services/api_service.dart';
-import 'screens/login_screen.dart';
+import '../services/api_service.dart';
+import '../screens/login_screen.dart';
 
 class AuthGuard extends StatefulWidget {
   final Widget child;

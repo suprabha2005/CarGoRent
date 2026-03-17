@@ -4,15 +4,15 @@ import 'auth_guard.dart';
 import 'providers/auth_provider.dart';
 import 'providers/car_provider.dart';
 import 'providers/booking_provider.dart';
-import 'screens/landing_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/register_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/vehicle_listing_screen.dart';
-import 'screens/vendor_dashboard.dart';
-import 'screens/admin_dashboard.dart';
-import 'screens/vendor_verification_screen.dart';
-import 'screens/vendor_pending_screen.dart';
+import 'screens/auth/landing_screen.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/auth/register_screen.dart';
+import 'screens/customer/home_screen.dart';
+import 'screens/customer/vehicle_listing_screen.dart';
+import 'screens/vendor/vendor_dashboard.dart';
+import 'screens/admin/admin_dashboard.dart';
+import 'screens/vendor/vendor_verification_screen.dart';
+import 'screens/vendor/vendor_pending_screen.dart';
 
 void main() {
   runApp(const CarGoRentApp());
