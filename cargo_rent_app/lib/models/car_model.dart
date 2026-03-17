@@ -5,6 +5,7 @@ class Car {
   final String type;
   final double pricePerDay;
   final String imageUrl;
+  final String description; // ✅ ADDED
   final bool isAvailable;
   final String vendorId;
 
@@ -15,11 +16,21 @@ class Car {
     required this.type,
     required this.pricePerDay,
     required this.imageUrl,
+    this.description = '', // ✅ optional with default
     required this.isAvailable,
     required this.vendorId,
   });
 
   factory Car.fromJson(Map<String, dynamic> json) {
+    // ✅ vendorId can be a String OR a populated object {_id, name}
+    String parsedVendorId = '';
+    final rawVendor = json['vendorId'];
+    if (rawVendor is Map) {
+      parsedVendorId = rawVendor['_id'] ?? '';
+    } else if (rawVendor is String) {
+      parsedVendorId = rawVendor;
+    }
+
     return Car(
       id: json['_id'] ?? '',
       name: json['name'] ?? '',
@@ -27,12 +38,12 @@ class Car {
       type: json['type'] ?? '',
       pricePerDay: (json['pricePerDay'] ?? 0).toDouble(),
       imageUrl: json['imageUrl'] ?? '',
+      description: json['description'] ?? '', // ✅ ADDED
       isAvailable: json['isAvailable'] ?? true,
-      vendorId: json['vendorId'] ?? '',
+      vendorId: parsedVendorId,
     );
   }
 
-  // Added copyWith method to fix the compilation error
   Car copyWith({
     String? id,
     String? name,
@@ -40,6 +51,7 @@ class Car {
     String? type,
     double? pricePerDay,
     String? imageUrl,
+    String? description,
     bool? isAvailable,
     String? vendorId,
   }) {
@@ -50,6 +62,7 @@ class Car {
       type: type ?? this.type,
       pricePerDay: pricePerDay ?? this.pricePerDay,
       imageUrl: imageUrl ?? this.imageUrl,
+      description: description ?? this.description, // ✅ ADDED
       isAvailable: isAvailable ?? this.isAvailable,
       vendorId: vendorId ?? this.vendorId,
     );
