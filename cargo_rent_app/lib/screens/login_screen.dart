@@ -1,74 +1,54 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
-import 'vendor_verification_screen.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:cargo_rent_app/services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
-  final String? role; 
-  const LoginScreen({super.key, this.role});
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _apiService = ApiService();
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final ApiService _apiService = ApiService(); 
+  bool _isPasswordVisible = false;
   bool _isLoading = false;
 
+  final Color primaryBlue = const Color(0xFF0052CC);
+
   void _handleLogin() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter email and password")),
-      );
-      return;
-    }
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      
+      try {
+        final success = await _apiService.login(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+        
+        if (!mounted) return;
+        setState(() => _isLoading = false);
 
-    setState(() => _isLoading = true);
-    final result = await _apiService.login(
-      _emailController.text.trim(), 
-      _passwordController.text.trim()
-    );
-    setState(() => _isLoading = false);
-
-    if (result != null) {
-      String role = result['user']['role'];
-      String status = result['user']['verificationStatus'] ?? 'approved';
-
-      if (role == 'admin') {
-        Navigator.pushReplacementNamed(context, '/admin_dashboard');
-      } 
-      else if (role == 'vendor') {
-        if (status == 'unverified') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const VendorVerificationScreen()),
-          );
-        } else if (status == 'pending') {
-          _showPendingDialog();
+        if (success) {
+          // Navigating using the route name defined in main.dart
+          Navigator.pushReplacementNamed(context, '/landing');
         } else {
-          Navigator.pushReplacementNamed(context, '/vendor_dashboard');
+          _showSnackBar("Invalid email or password.");
         }
-      } 
-      else {
-        Navigator.pushReplacementNamed(context, '/home');
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        _showSnackBar("Connection error. Is your server running?");
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid Credentials")),
-      );
     }
   }
 
-  void _showPendingDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Account Pending"),
-        content: const Text("Admin is reviewing your docs. Please wait for approval."),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))],
-      ),
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
     );
   }
 
@@ -76,69 +56,134 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Padding(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 100),
-              const Text("Welcome\nBack", style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, height: 1.2, color: Color(0xFF1A1A1A))),
-              const SizedBox(height: 10),
-              Text("Sign in to your account", style: TextStyle(color: Colors.grey[600], fontSize: 16)),
-              const SizedBox(height: 50),
-              
-              _buildTextField(_emailController, "Email", Icons.email_outlined, false),
-              const SizedBox(height: 20),
-              _buildTextField(_passwordController, "Password", Icons.lock_outline, true),
-              
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  "Welcome Back",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
+                ).animate().fadeIn().slideY(begin: 0.3),
+                const SizedBox(height: 10),
+                const Text(
+                  "Login to manage your car rentals.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ).animate().fadeIn(delay: 200.ms),
+                const SizedBox(height: 40),
+                
+                _buildTextField(
+                  controller: _emailController,
+                  label: "Email Address",
+                  hint: "example@mail.com",
+                  icon: Icons.email_outlined,
+                  validator: (value) => (value != null && value.contains('@')) ? null : "Enter a valid email",
+                ),
+                const SizedBox(height: 20),
+
+                _buildTextField(
+                  controller: _passwordController,
+                  label: "Password",
+                  hint: "••••••••",
+                  icon: Icons.lock_outline,
+                  isPassword: true,
+                  obscureText: !_isPasswordVisible,
+                  togglePassword: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                  validator: (value) => (value != null && value.length < 6) ? "Password too short" : null,
+                ),
+                
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {},
+                    child: const Text("Forgot Password?", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                ElevatedButton(
                   onPressed: _isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2D31FA),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    elevation: 0,
+                    backgroundColor: const Color(0xFF0F172A),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: _isLoading 
-                    ? const CircularProgressIndicator(color: Colors.white) 
-                    : const Text("LOGIN", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text("LOGIN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
-              ),
-              const SizedBox(height: 30),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Don't have an account? ", style: TextStyle(color: Colors.grey)),
-                  GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/register'),
-                    child: const Text("Register Here", style: TextStyle(color: Color(0xFF2D31FA), fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-            ],
+                
+                const SizedBox(height: 30),
+                
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("Don't have an account? "),
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(context, '/register'),
+                      child: Text(
+                        "Register Now",
+                        style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, IconData icon, bool obscure) {
-    return Container(
-      decoration: BoxDecoration(color: const Color(0xFFF5F6F9), borderRadius: BorderRadius.circular(15)),
-      child: TextField(
-        controller: controller,
-        obscureText: obscure,
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon, color: Colors.grey[400]),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 18),
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+    bool obscureText = false,
+    VoidCallback? togglePassword,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E293B))),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          obscureText: obscureText,
+          validator: validator,
+          decoration: InputDecoration(
+            hintText: hint,
+            prefixIcon: Icon(icon, size: 20),
+            suffixIcon: isPassword 
+              ? IconButton(
+                  icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, size: 20),
+                  onPressed: togglePassword,
+                )
+              : null,
+            filled: true,
+            fillColor: Colors.grey.shade100,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+          ),
         ),
-      ),
+      ],
     );
   }
 }
