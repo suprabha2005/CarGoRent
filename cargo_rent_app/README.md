@@ -1,4 +1,4 @@
-# 🚗 CarGoRent — Car Rental Platform
+# 🚗 CarGoRent - Car Rental Platform
 
 A full-stack multi-role car rental application built with **Flutter** and **Node.js**.
 
@@ -136,5 +136,5 @@ The app follows a **layered architecture**:
 
 ## 👨‍💻 Developer
 
-**Suprabha** — Flutter Developer  
+**Suprabha** - Flutter Developer  
 GitHub: [@suprabha2005](https://github.com/suprabha2005)
