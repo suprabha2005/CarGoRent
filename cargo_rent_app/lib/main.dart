@@ -13,6 +13,7 @@ import 'screens/vendor/vendor_dashboard.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/vendor/vendor_verification_screen.dart';
 import 'screens/vendor/vendor_pending_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const CarGoRentApp());
@@ -32,10 +33,7 @@ class CarGoRentApp extends StatelessWidget {
       child: MaterialApp(
         title: 'CarGoRent',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-          useMaterial3: true,
-        ),
+        theme: AppTheme.lightTheme,
         initialRoute: '/landing',
         routes: {
           '/landing':             (context) => const LandingScreen(),
