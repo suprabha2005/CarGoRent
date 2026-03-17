@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:cargo_rent_app/screens/splash_screen.dart';
-import 'package:cargo_rent_app/screens/landing_screen.dart'; 
-import 'package:cargo_rent_app/screens/login_screen.dart';
-import 'package:cargo_rent_app/screens/register_screen.dart';
-import 'package:cargo_rent_app/screens/home_screen.dart';
-import 'package:cargo_rent_app/screens/vendor_dashboard.dart';
-import 'package:cargo_rent_app/screens/admin_dashboard.dart';
-import 'package:cargo_rent_app/screens/vendor_verification_screen.dart';
-import 'package:cargo_rent_app/screens/vehicle_listing_screen.dart';
+import 'auth_guard.dart';
+import 'screens/landing_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/vehicle_listing_screen.dart';
+import 'screens/vendor_dashboard.dart';
+import 'screens/admin_dashboard.dart';
+import 'screens/vendor_verification_screen.dart';
+import 'screens/vendor_pending_screen.dart';
 
 void main() {
   runApp(const CarGoRentApp());
@@ -22,25 +23,45 @@ class CarGoRentApp extends StatelessWidget {
       title: 'CarGoRent',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0F172A),
-          primary: const Color(0xFF0F172A),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
-        fontFamily: 'Roboto', 
       ),
-      initialRoute: '/',
+      initialRoute: '/landing',
       routes: {
-        '/': (context) => const SplashScreen(),
+        // ✅ Public routes — no guard needed
         '/landing': (context) => const LandingScreen(),
-        '/login': (context) => const LoginScreen(), 
-        '/register': (context) => const RegisterScreen(),
-        '/vehicles': (context) => const VehicleListingScreen(),
-        '/home': (context) => const HomeScreen(),
-        '/vendor_dashboard': (context) => const VendorDashboard(),
-        '/vendor_verification': (context) => const VendorVerificationScreen(),
-        '/admin_dashboard': (context) => const AdminDashboard(),
+        '/login':   (context) => const LoginScreen(),
+        '/register':(context) => const RegisterScreen(),
+
+        // ✅ Customer routes — only logged in customers
+        '/home': (context) => AuthGuard(
+          allowedRoles: ['customer'],
+          child: const HomeScreen(),
+        ),
+        '/vehicles': (context) => AuthGuard(
+          allowedRoles: ['customer'],
+          child: const VehicleListingScreen(),
+        ),
+
+        // ✅ Vendor routes — only vendors
+        '/vendor_dashboard': (context) => AuthGuard(
+          allowedRoles: ['vendor'],
+          child: const VendorDashboard(),
+        ),
+        '/vendor_verification': (context) => AuthGuard(
+          allowedRoles: ['vendor'],
+          child: const VendorVerificationScreen(),
+        ),
+        '/vendor_pending': (context) => AuthGuard(
+          allowedRoles: ['vendor'],
+          child: const VendorPendingScreen(),
+        ),
+
+        // ✅ Admin routes — only admins
+        '/admin_dashboard': (context) => AuthGuard(
+          allowedRoles: ['admin'],
+          child: const AdminDashboard(),
+        ),
       },
     );
   }
